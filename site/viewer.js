@@ -111,9 +111,31 @@ if (!src) {
     .catch(e => { textEl.innerHTML = `<p class="note">${esc(String(e))}</p>`; });
 }
 
+// A slender pin whose tip is the exact coordinate: the body sits above the point so
+// the place itself stays visible. open = hollow with a dashed outline.
+const PIN = { w: 22, h: 32, pad: 3 }; // logical px; the tip is `pad` above the bottom edge
+function pinImage(color, open) {
+  const r = 2, W = PIN.w * r, H = PIN.h * r, cx = W / 2, tip = H - PIN.pad * r;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const path = () => {
+    g.beginPath(); g.moveTo(cx, tip);
+    g.lineTo(cx - 8 * r, tip - 17 * r);
+    g.arc(cx, tip - 17 * r - 0, 8 * r, Math.PI - 0.0, 0, false);
+    g.closePath();
+  };
+  g.lineJoin = 'round';
+  path(); g.lineWidth = 6 * r; g.strokeStyle = '#fff'; g.stroke();         // halo
+  path(); g.fillStyle = open ? '#fff' : color; g.fill();
+  g.lineWidth = 2.5 * r; g.strokeStyle = open ? color : '#fff';
+  if (open) g.setLineDash([4 * r, 3 * r]);
+  g.stroke();
+  return { image: g.getImageData(0, 0, W, H), pixelRatio: r };
+}
+
 function setupMap(features) {
   const byKey = Object.fromEntries(features.map(f => [f.properties.key, f]));
-  const LAYERS = ['k-area', 'k-line-solid', 'k-line-open', 'k-pt'];
+  const LAYERS = ['k-area', 'k-line-solid', 'k-line-open', 'k-pin', 'k-pin-hot'];
   // One blue family: only the figure being hovered or read is dark. Status is
   // carried by shape (open = dashed / hollow) and by the text, not by hue.
   const LIGHT = '#9fc0e8', DARK = '#1b4fa0';
@@ -127,9 +149,21 @@ function setupMap(features) {
     paint: { 'line-color': col, 'line-width': ['case', hot, 5, 2.5] } });
   map.addLayer({ id: 'k-line-open', type: 'line', source: 'kcaim', filter: ['all', ['!=', '$type', 'Point'], isOpen],
     paint: { 'line-color': col, 'line-width': ['case', hot, 5, 2.5], 'line-dasharray': [2, 2] } });
-  map.addLayer({ id: 'k-pt', type: 'circle', source: 'kcaim', filter: ['==', '$type', 'Point'],
-    paint: { 'circle-radius': ['case', hot, 10, 7], 'circle-color': ['case', isOpen, '#ffffff', col],
-             'circle-stroke-color': col, 'circle-stroke-width': 2.5 } });
+  for (const [name, color, open] of [['pin', LIGHT, false], ['pin-hot', DARK, false], ['pin-open', LIGHT, true], ['pin-open-hot', DARK, true]]) {
+    const { image, pixelRatio } = pinImage(color, open);
+    map.addImage(name, image, { pixelRatio });
+  }
+  const isPoint = ['==', ['geometry-type'], 'Point'];
+  const pinLayer = (id, suffix) => ({ id, type: 'symbol', source: 'kcaim', filter: isPoint,
+    layout: { 'icon-image': ['case', isOpen, 'pin-open' + suffix, 'pin' + suffix], 'icon-anchor': 'bottom',
+              'icon-offset': [0, PIN.pad], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+  map.addLayer(pinLayer('k-pin', ''));
+  map.addLayer(pinLayer('k-pin-hot', '-hot'));
+  const setHotPin = id => {
+    map.setFilter('k-pin', ['all', isPoint, ['!=', ['id'], id]]);
+    map.setFilter('k-pin-hot', ['all', isPoint, ['==', ['id'], id]]);
+  };
+  setHotPin(-1);
 
   const all = new LngLatBounds();
   features.forEach(f => extend(all, f.geometry.coordinates));
@@ -143,6 +177,7 @@ function setupMap(features) {
     if (lit && byKey[lit]) map.setFeatureState({ source: 'kcaim', id: byKey[lit].id }, { hot: false });
     lit = key;
     if (lit && byKey[lit]) map.setFeatureState({ source: 'kcaim', id: byKey[lit].id }, { hot: true });
+    setHotPin(lit && byKey[lit] ? byKey[lit].id : -1);
   };
   const read = key => {
     if (key === reading) return;
