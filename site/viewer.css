@@ -1,0 +1,6 @@
+html, body, #map { margin: 0; height: 100%; }
+#panel { position: absolute; top: 8px; left: 8px; max-width: 320px; max-height: 70%; overflow: auto;
+         background: #fffe; padding: 8px 12px; font: 13px/1.5 sans-serif; border-radius: 4px; }
+#panel h1 { font-size: 14px; margin: 0 0 4px; }
+.s-verified { color: #1a7f37 } .s-derived { color: #0969da } .s-normative { color: #8250df }
+.s-open { color: #bc4c00 } .s-volatile { color: #cf222e }
