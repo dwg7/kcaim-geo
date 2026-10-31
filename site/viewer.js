@@ -90,19 +90,28 @@ function render(chapters) {
 
 function extend(b, c) { typeof c[0] === 'number' ? b.extend(c) : c.forEach(x => extend(b, x)); }
 
-const map = new Map({ container: 'map', style: STYLE, center: [141.35, 43.06], zoom: 11 });
-map.on('error', e => console.error('maplibre:', e.error?.message ?? e));
+let map;
+// Paint the text first, then start the map; no artificial delay.
+function startMap() {
+  const status = document.getElementById('map-status');
+  performance.mark('kcaim-map-create');
+  map = new Map({ container: 'map', style: STYLE, center: [141.35, 43.06], zoom: 11 });
+  map.on('error', e => console.error('maplibre:', e.error?.message ?? e));
+  return new Promise(r => map.on('load', () => { performance.mark('kcaim-map-load'); status.remove(); r(); }));
+}
 
 if (!src) {
   textEl.innerHTML = '<p class="note">?kcaim-geo=&lt;URL of a kcaim-geo .md file&gt; を指定してください。</p>';
+  document.getElementById('map-status').remove();
 } else {
-  const mapReady = new Promise(r => map.on('load', r));
   fetch(src)
     .then(r => { if (!r.ok) throw new Error(`${r.status} ${src}`); return r.text(); })
     .then(async text => {
       const features = render(parse(text));
+      performance.mark('kcaim-text-rendered');
       document.title = `${textEl.querySelector('h1')?.textContent ?? 'kcaim-geo'} — kcaim-geo`;
-      await mapReady; // the text is readable before the map has finished loading
+      await new Promise(r => requestAnimationFrame(() => setTimeout(r)));
+      await startMap();
       setupMap(features);
     })
     .catch(e => { textEl.innerHTML = `<p class="note">${esc(String(e))}</p>`; });
@@ -110,39 +119,55 @@ if (!src) {
 
 function setupMap(features) {
   const byKey = Object.fromEntries(features.map(f => [f.properties.key, f]));
-  const col = ['match', ['get', 'status'], ...Object.entries(COLOR).flat(), '#77777f'];
-  const hot = ['boolean', ['feature-state', 'active'], false];
+  const LAYERS = ['k-area', 'k-line-solid', 'k-line-open', 'k-pt'];
+  // One blue family: only the figure being hovered or read is dark. Status is
+  // carried by shape (open = dashed / hollow) and by the text, not by hue.
+  const LIGHT = '#9fc0e8', DARK = '#1b4fa0';
+  const hot = ['boolean', ['feature-state', 'hot'], false];
+  const col = ['case', hot, DARK, LIGHT];
   const isOpen = ['==', ['get', 'status'], 'open'];
   map.addSource('kcaim', { type: 'geojson', data: { type: 'FeatureCollection', features } });
   map.addLayer({ id: 'k-area', type: 'fill', source: 'kcaim', filter: ['==', '$type', 'Polygon'],
-    paint: { 'fill-color': col, 'fill-opacity': ['case', hot, 0.38, ['case', isOpen, 0.12, 0.2]] } });
+    paint: { 'fill-color': col, 'fill-opacity': ['case', hot, 0.35, 0.12] } });
   map.addLayer({ id: 'k-line-solid', type: 'line', source: 'kcaim', filter: ['all', ['!=', '$type', 'Point'], ['!', isOpen]],
-    paint: { 'line-color': col, 'line-width': ['case', hot, 5, 3] } });
+    paint: { 'line-color': col, 'line-width': ['case', hot, 5, 2.5] } });
   map.addLayer({ id: 'k-line-open', type: 'line', source: 'kcaim', filter: ['all', ['!=', '$type', 'Point'], isOpen],
-    paint: { 'line-color': col, 'line-width': ['case', hot, 5, 3], 'line-dasharray': [2, 2] } });
+    paint: { 'line-color': col, 'line-width': ['case', hot, 5, 2.5], 'line-dasharray': [2, 2] } });
   map.addLayer({ id: 'k-pt', type: 'circle', source: 'kcaim', filter: ['==', '$type', 'Point'],
     paint: { 'circle-radius': ['case', hot, 10, 7], 'circle-color': ['case', isOpen, '#ffffff', col],
-             'circle-stroke-color': ['case', isOpen, col, '#ffffff'], 'circle-stroke-width': 2.5 } });
+             'circle-stroke-color': col, 'circle-stroke-width': 2.5 } });
 
   const all = new LngLatBounds();
   features.forEach(f => extend(all, f.geometry.coordinates));
-  const fitAll = () => { if (!all.isEmpty()) map.fitBounds(all, { padding: 60, maxZoom: 15, duration: 0 }); };
-  fitAll();
+  if (!all.isEmpty()) map.fitBounds(all, { padding: 60, maxZoom: 15, duration: 0 });
 
-  let current = null;
-  const activate = key => {
-    if (key === current) return;
-    if (current && byKey[current]) map.setFeatureState({ source: 'kcaim', id: byKey[current].id }, { active: false });
+  // The darkened figure is the hovered one if any, else the one being read.
+  let reading = null, hover = null, lit = null;
+  const paint = () => {
+    const key = hover ?? reading;
+    if (key === lit) return;
+    if (lit && byKey[lit]) map.setFeatureState({ source: 'kcaim', id: byKey[lit].id }, { hot: false });
+    lit = key;
+    if (lit && byKey[lit]) map.setFeatureState({ source: 'kcaim', id: byKey[lit].id }, { hot: true });
+  };
+  const read = key => {
+    if (key === reading) return;
     document.querySelectorAll('.sec.active').forEach(e => e.classList.remove('active'));
-    current = key;
+    reading = key;
     document.getElementById(key)?.classList.add('active');
+    paint();
     const f = byKey[key];
     if (!f) return;
-    map.setFeatureState({ source: 'kcaim', id: f.id }, { active: true });
     const b = new LngLatBounds();
     extend(b, f.geometry.coordinates);
     if (f.geometry.type === 'Point') map.flyTo({ center: f.geometry.coordinates, zoom: 15.5 });
     else map.fitBounds(b, { padding: 70, maxZoom: 16 });
+  };
+  const setHover = key => {
+    document.querySelectorAll('.sec.hover').forEach(e => e.classList.remove('hover'));
+    hover = key;
+    if (key) document.getElementById(key)?.classList.add('hover');
+    paint();
   };
 
   // The last geometry-bearing section whose top has passed the upper third of the
@@ -155,21 +180,25 @@ function setupMap(features) {
     requestAnimationFrame(() => {
       queued = false;
       const line = innerHeight * 0.35;
-      const reading = geoSecs.filter(s => s.getBoundingClientRect().top <= line).pop() || geoSecs[0];
-      if (reading) activate(reading.id);
+      const cur = geoSecs.filter(s => s.getBoundingClientRect().top <= line).pop() || geoSecs[0];
+      if (cur) read(cur.id);
     });
   };
   addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  document.querySelectorAll('.sec.geo').forEach(s => s.addEventListener('click', () => { current = null; activate(s.id); }));
-  map.on('click', e => {
-    const hit = map.queryRenderedFeatures(e.point, { layers: ['k-area', 'k-line-solid', 'k-line-open', 'k-pt'] })[0];
-    const el = hit && document.getElementById(hit.properties.key);
-    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); activate(el.id); }
+  geoSecs.forEach(s => {
+    s.addEventListener('click', () => { reading = null; read(s.id); });
+    s.addEventListener('mouseenter', () => setHover(s.id));
+    s.addEventListener('mouseleave', () => setHover(null));
   });
-  for (const l of ['k-area', 'k-line-solid', 'k-line-open', 'k-pt']) {
-    map.on('mouseenter', l, () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', l, () => { map.getCanvas().style.cursor = ''; });
+  map.on('click', e => {
+    const hit = map.queryRenderedFeatures(e.point, { layers: LAYERS })[0];
+    const el = hit && document.getElementById(hit.properties.key);
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); read(el.id); }
+  });
+  for (const l of LAYERS) {
+    map.on('mousemove', l, e => { map.getCanvas().style.cursor = 'pointer'; setHover(e.features[0].properties.key); });
+    map.on('mouseleave', l, () => { map.getCanvas().style.cursor = ''; setHover(null); });
   }
 }
