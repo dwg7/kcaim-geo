@@ -82,7 +82,12 @@ function render(chapters) {
   return features;
 }
 
-function extend(b, c) { typeof c[0] === 'number' ? b.extend(c) : c.forEach(x => extend(b, x)); }
+// Extend `b` with every position of a GeoJSON Geometry, GeometryCollection included.
+function extendGeometry(b, g) {
+  const walk = c => (typeof c[0] === 'number' ? b.extend(c) : c.forEach(walk));
+  if (g.type === 'GeometryCollection') g.geometries.forEach(x => extendGeometry(b, x));
+  else walk(g.coordinates);
+}
 
 let map;
 // Paint the text first, then start the map; no artificial delay.
@@ -165,9 +170,15 @@ function setupMap(features) {
   };
   setHotPin(-1);
 
+  // Initial extent: everything in the document. Pins extend above their point, so
+  // leave extra room at the top.
   const all = new LngLatBounds();
-  features.forEach(f => extend(all, f.geometry.coordinates));
-  if (!all.isEmpty()) map.fitBounds(all, { padding: 60, maxZoom: 15, duration: 0 });
+  features.forEach(f => extendGeometry(all, f.geometry));
+  const showAll = animate => {
+    if (all.isEmpty()) return;
+    map.fitBounds(all, { padding: { top: 90, bottom: 60, left: 60, right: 60 }, maxZoom: 15, duration: animate ? 800 : 0 });
+  };
+  showAll(false);
 
   // The darkened figure is the hovered one if any, else the one being read.
   let reading = null, hover = null, lit = null;
@@ -188,7 +199,7 @@ function setupMap(features) {
     const f = byKey[key];
     if (!f) return;
     const b = new LngLatBounds();
-    extend(b, f.geometry.coordinates);
+    extendGeometry(b, f.geometry);
     if (f.geometry.type === 'Point') map.flyTo({ center: f.geometry.coordinates, zoom: 15.5 });
     else map.fitBounds(b, { padding: 70, maxZoom: 16 });
   };
@@ -199,15 +210,26 @@ function setupMap(features) {
     paint();
   };
 
-  // The last geometry-bearing section whose top has passed the upper third of the
-  // viewport is the one being read; sections without geometry leave the map as is.
+  // At the top of a document with several geometries, show them all. Below that, the
+  // last geometry-bearing section whose top has passed the upper third of the viewport
+  // is the one being read; sections without geometry leave the map as is.
   const geoSecs = [...document.querySelectorAll('.sec.geo')];
+  const overviewAtTop = features.length > 1;
   let queued = false;
   const onScroll = () => {
     if (queued) return;
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
+      if (overviewAtTop && scrollY < 8) {
+        if (reading !== null) {
+          document.querySelectorAll('.sec.active').forEach(e => e.classList.remove('active'));
+          reading = null;
+          paint();
+          showAll(true);
+        }
+        return;
+      }
       const line = innerHeight * 0.35;
       const cur = geoSecs.filter(s => s.getBoundingClientRect().top <= line).pop() || geoSecs[0];
       if (cur) read(cur.id);
