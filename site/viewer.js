@@ -6,7 +6,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 setWorkerUrl(workerUrl);
 
-// Usage: viewer.html?kcaim-geo=../examples/tsukisamu-park.md
+// Usage: viewer.html?kcaim-geo=examples/tsukisamu-park.md
 const STYLE = 'https://stars.optgeo.org/style/bvmap-starlight';
 const src = new URLSearchParams(location.search).get('kcaim-geo');
 const list = document.getElementById('list');

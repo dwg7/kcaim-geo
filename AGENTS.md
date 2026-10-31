@@ -62,9 +62,9 @@ Shapefile や GeoJSON などの属性テーブルを取り込む際は、列構�
 
 1. **整合性チェック (`scripts/check_kcaim.py`) の維持**
    - Markdown が UTF-8 であるか、第 1 レベル見出し `# /...` が一意か、バイナリ混入がないかを検証する軽量スクリプトを作成・実行せよ。
-2. **最小インスタンス (`examples/`) の保守**
+2. **最小インスタンス (`docs/examples/`) の保守**
    - `tsukisamu-park.md` 等の試作インスタンスをパースし、MapLibre GL JS 等の軽量 Web マップで即座に可視化できるプロトタイプコード(HTML/JS)を提案・実装せよ。
-   - ビューアのソースは `site/`、ビルド成果物は `docs/`(`npm run build`)。`docs/viewer.html?kcaim-geo=../examples/tsukisamu-park.md` のように、`kcaim-geo` パラメータで md を指定して開く(リポジトリ直下を静的配信して確認)。開発は `npm run dev` → `/site/viewer.html?kcaim-geo=...`。
+   - ビューアのソースは `site/`、ビルド成果物は `docs/`(`npm run build`)。`docs/viewer.html?kcaim-geo=examples/tsukisamu-park.md` のように、`kcaim-geo` パラメータで md を指定して開く(`docs/` を配信ルートとする GitHub Pages と同じ相対パス。手元ではリポジトリ直下を静的配信し `/docs/viewer.html?...` で確認)。md の正本は `docs/examples/` に置き、複製しない。開発は `npm run dev` → `/site/viewer.html?kcaim-geo=../docs/examples/tsukisamu-park.md`。
    - 地図スタイルは `https://stars.optgeo.org/style/bvmap-starlight` を使う。MapLibre GL JS は最新版(現在 6.x)。ブラウザペインが非表示だと描画が進まないので、目視確認はペインを表示して行う。
 3. **言語進化の観察と提案**
    - 運用中に共通して現れる新しい表現パターンや課題があれば、過剰なルールにならない範囲で `CONCEPT.md` や `FORMAT.md` への追記を提案せよ。
