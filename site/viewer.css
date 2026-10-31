@@ -1,0 +1,42 @@
+:root {
+  --paper: #fbfaf7; --ink: #26262a; --dim: #77777f; --rule: #dddbd4;
+  --verified: #2f7d4f; --derived: #3b6ea8; --normative: #7a5aa6; --open: #b5651d; --volatile: #b53a3a;
+  --serif: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Source Han Serif JP", serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); }
+#layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 46vw); min-height: 100%; }
+#map { position: sticky; top: 0; height: 100vh; border-left: 1px solid var(--rule); }
+#text { font: 17px/1.95 var(--serif); padding: 12vh 6vw 40vh; max-width: 44rem; justify-self: center; width: 100%; }
+.note { color: var(--dim); font-family: sans-serif; font-size: 14px; }
+
+.chapter > h1 { font: 500 15px/1.4 var(--mono); margin: 0 0 .4em; letter-spacing: .02em; }
+.chapter > h1 .dir { color: var(--dim); }
+.chapter > h1 .leaf { color: var(--ink); font-weight: 700; font-size: 1.35em; }
+.meta { font: 12px/1.6 sans-serif; color: var(--dim); margin: 0 0 1.6em; display: flex; flex-wrap: wrap; gap: .2em 1.2em; }
+.meta b { font-weight: 600; }
+.badge { font: 700 11px/1 sans-serif; letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; border-radius: 3px; color: #fff; background: var(--c, var(--dim)); }
+
+.sec { border-left: 3px solid var(--c, var(--rule)); padding: .4em 0 .1em 1.2em; margin: 0 0 12vh -1.2em; transition: background .3s; }
+.sec.geo { cursor: pointer; }
+.sec.active { background: linear-gradient(90deg, color-mix(in srgb, var(--c) 9%, transparent), transparent 70%); }
+.sec.hover { background: color-mix(in srgb, #1b4fa0 8%, transparent); }
+.sec h2 { font-size: 1.1em; margin: 1.6em 0 .3em; }
+.sec p { margin: 0 0 1em; }
+.sec code { font: .86em var(--mono); background: #0000000a; padding: .1em .35em; border-radius: 3px; }
+.pin { font: 12px sans-serif; color: var(--dim); }
+.st-verified { --c: var(--verified) } .st-derived { --c: var(--derived) } .st-normative { --c: var(--normative) }
+.st-open { --c: var(--open) } .st-volatile { --c: var(--volatile) }
+.st-open .sec-body, .st-volatile .sec-body { font-style: normal; }
+
+@media (max-width: 800px) {
+  #layout { display: block; }
+  #map { position: fixed; inset: auto 0 0 0; height: 36vh; border: 0; border-top: 1px solid var(--rule); z-index: 1; }
+  #text { padding: 8vh 7vw 48vh; font-size: 16px; }
+}
+
+/* Shown only if the map is still loading after a moment, so a fast load never flickers. */
+#map-status { position: absolute; top: 12px; left: 12px; z-index: 1; font: 13px sans-serif; color: var(--dim);
+  background: #fffd; padding: 4px 10px; border-radius: 3px; opacity: 0; animation: appear .3s .6s forwards; }
+@keyframes appear { to { opacity: 1; } }

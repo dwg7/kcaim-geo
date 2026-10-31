@@ -1,0 +1,19 @@
+{
+  "name": "kcaim-geo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "rm -rf docs/assets docs/viewer.html && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.17",
+    "maplibre-gl": "^6.16.0",
+    "marked": "^18.1.2"
+  },
+  "devDependencies": {
+    "vite": "^8.3.5"
+  }
+}
