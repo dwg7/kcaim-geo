@@ -16,14 +16,13 @@ const textEl = document.getElementById('text');
 
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-// Split markdown into chapters (`# /path`), each with an intro and `##` sections.
-// `### geometry` + its json block is lifted out of the prose and attached to the
-// enclosing section (or chapter intro). Statuses are inherited from the chapter.
+// Split markdown into chapters (`# /path`, one 踏み跡 each), each with an intro and
+// `##` sections. The `## geometry` section is lifted out of the prose and becomes the
+// geometry of the whole chapter; its status is the chapter's `- status:`.
 function parse(text) {
   const chapters = [];
   let ch = null, sec = null, fence = null, geom = null; // geom: null | 'wait' | string[]
-  let metaOpen = false;
-  const target = () => sec || ch;
+  let metaOpen = false, inGeomSection = false;
   const push = line => { (sec || ch).body.push(line); };
   for (const line of text.split('\n')) {
     const f = line.match(/^\s*(`{3,}|~{3,})(\w*)/);
@@ -34,23 +33,25 @@ function parse(text) {
       } else if (f[1][0] === fence[0] && f[1].length >= fence.length) {
         fence = null;
         if (Array.isArray(geom)) {
-          try { target().geometry = JSON.parse(geom.join('\n')); } catch (e) { target().error = e.message; }
+          try { ch.geometry = JSON.parse(geom.join('\n')); } catch (e) { ch.error = e.message; }
           geom = null; continue;
         }
       }
-      if (ch && !Array.isArray(geom)) { metaOpen = false; push(line); }
+      if (ch && !inGeomSection) { metaOpen = false; push(line); }
       continue;
     }
     if (Array.isArray(geom)) { geom.push(line); continue; }
-    if (fence) { if (ch) push(line); continue; }
+    if (fence) { if (ch && !inGeomSection) push(line); continue; }
     let m;
     if ((m = line.match(/^# (\/\S*)\s*$/))) {
-      ch = { path: m[1], status: '?', meta: {}, body: [], sections: [] }; sec = null; metaOpen = true;
+      ch = { path: m[1], status: '?', meta: {}, body: [], sections: [] }; sec = null; metaOpen = true; inGeomSection = false;
       chapters.push(ch);
     } else if (!ch) { /* text before the first chapter is ignored */ }
     else if ((m = line.match(/^## (.+?)\s*$/))) {
-      sec = { title: m[1], body: [] }; ch.sections.push(sec); metaOpen = false;
-    } else if (/^### geometry\s*$/.test(line)) { geom = 'wait'; }
+      metaOpen = false;
+      if (m[1].toLowerCase() === 'geometry') { inGeomSection = true; geom = 'wait'; sec = null; }
+      else { inGeomSection = false; sec = { title: m[1], body: [] }; ch.sections.push(sec); }
+    } else if (inGeomSection) { /* prose around the geometry block is not rendered */ }
     else if (metaOpen && !sec && (m = line.match(/^- ([\w-]+):\s*(.*)$/))) {
       if (m[1] === 'status') ch.status = m[2].trim(); else ch.meta[m[1]] = m[2].trim();
     } else { if (line.trim()) metaOpen = false; push(line); }
@@ -60,29 +61,22 @@ function parse(text) {
 
 const md = s => DOMPurify.sanitize(marked.parse(s, { async: false }));
 
+// Each chapter is one unit: its article carries the status, and the geometry (if any).
 function render(chapters) {
   const features = [];
-  const add = (geometry, id, ch) => {
-    if (geometry) features.push({ type: 'Feature', id: features.length, properties: { key: id, path: ch.path, status: ch.status }, geometry });
-  };
   textEl.innerHTML = chapters.map((ch, i) => {
-    const cid = `c${i}`;
+    const id = `c${i}`;
     const st = Object.hasOwn(COLOR, ch.status) ? ch.status : 'unknown';
     const slash = ch.path.lastIndexOf('/') + 1;
-    add(ch.geometry, cid, ch);
+    if (ch.geometry) features.push({ type: 'Feature', id: features.length, properties: { key: id, path: ch.path, status: ch.status }, geometry: ch.geometry });
     const meta = Object.entries(ch.meta).map(([k, v]) => `<span><b>${esc(k)}</b> ${esc(v)}</span>`).join('');
-    const block = (id, geometry, err, html, cls = '') =>
-      `<section id="${id}" class="sec ${cls} st-${st}${geometry ? ' geo' : ''}">${html}${err ? `<p class="pin">⚠ geometry: ${esc(err)}</p>` : ''}</section>`;
     const intro = ch.body.join('\n').trim();
-    return `<article class="chapter st-${st}">
+    return `<article id="${id}" class="sec chapter st-${st}${ch.geometry ? ' geo' : ''}">
       <h1><span class="dir">${esc(ch.path.slice(0, slash))}</span><span class="leaf">${esc(ch.path.slice(slash))}</span></h1>
       <div class="meta"><span class="badge" style="--c:${COLOR[ch.status] || '#77777f'}">${esc(ch.status)}</span>${meta}</div>
-      ${(intro || ch.geometry) ? block(cid, ch.geometry, ch.error, md(intro)) : ''}
-      ${ch.sections.map((s, j) => {
-        const sid = `${cid}s${j}`;
-        add(s.geometry, sid, ch);
-        return block(sid, s.geometry, s.error, `<h2>${esc(s.title)}</h2>${md(s.body.join('\n'))}`);
-      }).join('')}
+      ${intro ? md(intro) : ''}
+      ${ch.sections.map(s => `<h2>${esc(s.title)}</h2>${md(s.body.join('\n'))}`).join('')}
+      ${ch.error ? `<p class="pin">⚠ geometry: ${esc(ch.error)}</p>` : ''}
     </article>`;
   }).join('');
   return features;

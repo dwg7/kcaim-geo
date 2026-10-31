@@ -33,17 +33,21 @@ Context: このファイル(正本。`CLAUDE.md` はここを参照するだけ)
 
 ### 3.1 ジオメトリのインラインアノテーション
 
-テキスト(ナラティブ)の文脈に紐づく空間データは、セクション内の `### geometry` コードブロックに標準 GeoJSON Geometry(`Point`, `LineString`, `Polygon` 等)として直接記述する。
+`#` は踏み跡(1つの知識の単位)、`##` は踏み跡の中のセクションである。ジオメトリは踏み跡全体に結びつく空間データで、その `#` の中の `## geometry` セクションに、標準 GeoJSON Geometry(`Point`, `LineString`, `Polygon`, `GeometryCollection` 等)を1つの `json` コードブロックとして直接記述する。
+
+- `## geometry` は1つの `#` に高々1つ。`### geometry` は認めない(`scripts/check_kcaim.py` が検査する)。
+- 踏み跡の中の個々の要素に別々の位置を結びつけたいときは、`### geometry` にせず、その要素を別の `#` に分ける(または1つの GeometryCollection / Multi* にまとめる)。
+- 状態(`- status:`)は `#` ごとに1つ。ジオメトリは所属する `#` の状態を引き継ぐ。
 
 ````markdown
 # /traces/sample-walk
-- status: verified
+- status: open
 - date: 2026-10-31
 
-## パート1：現地アプローチ
+## パート1:現地アプローチ
 散文による状況・背景の記述がここに入る。
 
-### geometry
+## geometry
 ```json
 {
   "type": "LineString",
@@ -51,6 +55,8 @@ Context: このファイル(正本。`CLAUDE.md` はここを参照するだけ)
 }
 ```
 ````
+
+良好な書き方の見本は `docs/examples/yukuepira-chashi.md`(5状態を踏み跡ごとに分け、出典と確認日を付け、未確認は `open` / `volatile` として残す)。
 
 ### 3.2 クラシック GIS からのインポート方針
 
@@ -65,7 +71,7 @@ Shapefile や GeoJSON などの属性テーブルを取り込む際は、列構�
 2. **最小インスタンス (`docs/examples/`) の保守**
    - `tsukisamu-park.md` 等の試作インスタンスをパースし、MapLibre GL JS 等の軽量 Web マップで即座に可視化できるプロトタイプコード(HTML/JS)を提案・実装せよ。
    - ビューアのソースは `site/`、ビルド成果物は `docs/`(`npm run build`)。`docs/viewer.html?kcaim-geo=examples/tsukisamu-park.md` のように、`kcaim-geo` パラメータで md を指定して開く(`docs/` を配信ルートとする GitHub Pages と同じ相対パス。手元ではリポジトリ直下を静的配信し `/docs/viewer.html?...` で確認)。md の正本は `docs/examples/` に置き、複製しない。開発は `npm run dev` → `/site/viewer.html?kcaim-geo=../docs/examples/tsukisamu-park.md`。
-   - ビューアのデザイン方針は「本文が主、地図は付き添う」(地誌の関係)。本文を1カラムで流し、読んでいる節のジオメトリへ地図が追従する(Story Map 型)。5状態は節のバッジと左線の色で見せ、地図は青一色で、ホバー中または読んでいる節の図形だけを濃くする(状態は形で示す。`open` は破線・中抜き)。本文を先に描き、地図はその後に生成する。地図が0.6秒以内に読み込めなければ「地図を読み込み中…」を出す(人工的な待ち時間は入れない)。ジオメトリのない節は地図を動かさない。
+   - ビューアのデザイン方針は「本文が主、地図は付き添う」(地誌の関係)。本文を1カラムで流し、読んでいる踏み跡(`#`)のジオメトリへ地図が追従する(Story Map 型)。5状態は踏み跡のバッジと左線の色で見せ、地図は青一色で、ホバー中または読んでいる踏み跡の図形だけを濃くする(状態は形で示す。`open` は破線・中抜き)。本文を先に描き、地図はその後に生成する。地図が0.6秒以内に読み込めなければ「地図を読み込み中…」を出す(人工的な待ち時間は入れない)。ジオメトリのない踏み跡は地図を動かさない。
    - 地図スタイルは `https://stars.optgeo.org/style/bvmap-starlight` を使う。MapLibre GL JS は最新版(現在 6.x)。ブラウザペインが非表示だと描画が進まないので、目視確認はペインを表示して行う。
 3. **言語進化の観察と提案**
    - 運用中に共通して現れる新しい表現パターンや課題があれば、過剰なルールにならない範囲で `CONCEPT.md` や `FORMAT.md` への追記を提案せよ。

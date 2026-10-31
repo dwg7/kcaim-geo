@@ -11,7 +11,6 @@ html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink
 #text { font: 17px/1.95 var(--serif); padding: 12vh 6vw 40vh; max-width: 44rem; justify-self: center; width: 100%; }
 .note { color: var(--dim); font-family: sans-serif; font-size: 14px; }
 
-.chapter { margin-bottom: 14vh; }
 .chapter > h1 { font: 500 15px/1.4 var(--mono); margin: 0 0 .4em; letter-spacing: .02em; }
 .chapter > h1 .dir { color: var(--dim); }
 .chapter > h1 .leaf { color: var(--ink); font-weight: 700; font-size: 1.35em; }
@@ -19,11 +18,11 @@ html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink
 .meta b { font-weight: 600; }
 .badge { font: 700 11px/1 sans-serif; letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; border-radius: 3px; color: #fff; background: var(--c, var(--dim)); }
 
-.sec { border-left: 3px solid var(--c, var(--rule)); padding-left: 1.2em; margin: 0 0 2.2em -1.2em; transition: background .3s; }
+.sec { border-left: 3px solid var(--c, var(--rule)); padding: .4em 0 .1em 1.2em; margin: 0 0 12vh -1.2em; transition: background .3s; }
 .sec.geo { cursor: pointer; }
 .sec.active { background: linear-gradient(90deg, color-mix(in srgb, var(--c) 9%, transparent), transparent 70%); }
 .sec.hover { background: color-mix(in srgb, #1b4fa0 8%, transparent); }
-.sec h2 { font-size: 1.15em; margin: 0 0 .3em; }
+.sec h2 { font-size: 1.1em; margin: 1.6em 0 .3em; }
 .sec p { margin: 0 0 1em; }
 .sec code { font: .86em var(--mono); background: #0000000a; padding: .1em .35em; border-radius: 3px; }
 .pin { font: 12px sans-serif; color: var(--dim); }

@@ -6,7 +6,7 @@
 
 位置は OpenStreetMap の公園形状(way 161769867)の中心から取った。OSM 由来の概略位置であり、現地では未確認のため、位置の確からしさは `open` として扱う。
 
-### geometry
+## geometry
 ```json
 {
   "type": "Point",
@@ -21,7 +21,7 @@
 ## パート1：公園の外周を歩く
 想定ルートの下書き。OSM の公園外周の主要な頂点を結んだ線で、実際に歩いたログではない。歩いた後に `verified` へ更新し、気づきを `/lessons/` に移す。
 
-### geometry
+## geometry
 ```json
 {
   "type": "LineString",
