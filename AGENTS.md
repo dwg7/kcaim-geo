@@ -67,12 +67,11 @@ Shapefile や GeoJSON などの属性テーブルを取り込む際は、列構�
 指示を受けた際、またはリポジトリのメンテナンス時、以下のタスクを自律的に遂行せよ:
 
 1. **整合性チェック (`scripts/check_kcaim.py`) の維持**
-   - Markdown が UTF-8 であるか、第 1 レベル見出し `# /...` が一意か、バイナリ混入がないかを検証する軽量スクリプトを作成・実行せよ。
-2. **最小インスタンス (`docs/examples/`) の保守**
-   - `tsukisamu-park.md` 等の試作インスタンスをパースし、MapLibre GL JS 等の軽量 Web マップで即座に可視化できるプロトタイプコード(HTML/JS)を提案・実装せよ。
-   - ビューアのソースは `site/`、ビルド成果物は `docs/`(`npm run build`)。`docs/viewer.html?kcaim-geo=examples/tsukisamu-park.md` のように、`kcaim-geo` パラメータで md を指定して開く(`docs/` を配信ルートとする GitHub Pages と同じ相対パス。手元ではリポジトリ直下を静的配信し `/docs/viewer.html?...` で確認)。md の正本は `docs/examples/` に置き、複製しない。開発は `npm run dev` → `/site/viewer.html?kcaim-geo=../docs/examples/tsukisamu-park.md`。
-   - ビューアのデザイン方針は「本文が主、地図は付き添う」(地誌の関係)。本文を1カラムで流し、読んでいる踏み跡(`#`)のジオメトリへ地図が追従する(Story Map 型)。5状態は踏み跡のバッジと左線の色で見せ、地図は青一色で、ホバー中または読んでいる踏み跡の図形だけを濃くする(状態は形で示す。`open` は破線・中抜き)。本文を先に描き、地図はその後に生成する。地図が0.6秒以内に読み込めなければ「地図を読み込み中…」を出す(人工的な待ち時間は入れない)。ジオメトリのない踏み跡は地図を動かさない。点は丸ではなく、先端が座標になるピンで描く(丸は位置にある注記や建物を隠すため。照準を連想させる十字や同心円は使わない)。`open` は中抜きの破線のピン。
-   - 地図スタイルは `https://stars.optgeo.org/style/bvmap-starlight` を使う。MapLibre GL JS は最新版(現在 6.x)。ブラウザペインが非表示だと描画が進まないので、目視確認はペインを表示して行う。
+   - UTF-8、バイナリ混入、仮想パス(`# /...`)の一意性、踏み跡ごとの5状態、ジオメトリの規約と妥当性(3.1)を検査する。規約が変わったら、このスクリプトも同時に直す。
+2. **インスタンスとビューアの保守**
+   - インスタンス(md)の正本は `docs/examples/`。複製しない。新しい題材は、良好な見本 `docs/examples/yukuepira-chashi.md` に倣う。
+   - ビューアのソースは `site/`、ビルド成果物は `docs/viewer.html` と `docs/assets/`(手で編集しない)。設計の理由は `DECISIONS.md`(D3〜D10)を読むこと。
+   - `docs/viewer.html?kcaim-geo=examples/<file>.md` のように、`kcaim-geo` パラメータで md を指定して開く。手元では、リポジトリ直下を静的配信して `/docs/viewer.html?...` で確認するか、`npm run dev` で `/site/viewer.html?kcaim-geo=../docs/examples/<file>.md` を開く。
 3. **言語進化の観察と提案**
    - 運用中に共通して現れる新しい表現パターンや課題があれば、過剰なルールにならない範囲で `CONCEPT.md` や `FORMAT.md` への追記を提案せよ。
 
@@ -84,3 +83,12 @@ Claude Code 起動後、プロジェクトの作業を始めるときはまず�
 # バイナリ非混入およびパスの一意性チェック
 python3 scripts/check_kcaim.py
 ```
+
+## 6. 運用ルール (Operations)
+
+- **読む順序**: `README.md`(概要)→ このファイル(守ること)→ `DECISIONS.md`(決めたことと理由)。決定を覆すときは、`DECISIONS.md` に日付つきで追記する。
+- **`site/` を変えたら**: `npm run build` を実行し、`docs/` の変更も同じコミットに含める(GitHub Pages はビルドしない)。
+- **座標は出典から**: 目測で書かない。出典を本文に書き、現地確認までは `verified` にしない(D11)。
+- **目視確認**: ブラウザペインが非表示だと、地図の描画が進まない。確認するときはペインを表示する。
+- **公開**: `main` への取り込みは PR 経由。Pages は `main` の `/docs` から配信される。マージは人が行うこと(D12)。
+- **コミット**: author のメールは `18297+hfu@users.noreply.github.com`(ID プレフィックス付き)を使う。
