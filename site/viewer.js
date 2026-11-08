@@ -8,10 +8,11 @@ import DOMPurify from 'dompurify';
 
 setWorkerUrl(workerUrl);
 
-// Usage: viewer.html?kcaim-geo=examples/tsukisamu-park.md
+// Usage: viewer.html?miso-geo=examples/tsukisamu-park.md (the old ?kcaim-geo= is still accepted)
 const STYLE = 'https://stars.optgeo.org/style/bvmap-starlight';
 const COLOR = { verified: '#2f7d4f', derived: '#3b6ea8', normative: '#7a5aa6', open: '#b5651d', volatile: '#b53a3a' };
-const src = new URLSearchParams(location.search).get('kcaim-geo');
+const params = new URLSearchParams(location.search);
+const src = params.get('miso-geo') ?? params.get('kcaim-geo');
 const textEl = document.getElementById('text');
 
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -93,22 +94,22 @@ let map;
 // Paint the text first, then start the map; no artificial delay.
 function startMap() {
   const status = document.getElementById('map-status');
-  performance.mark('kcaim-map-create');
+  performance.mark('miso-map-create');
   map = new Map({ container: 'map', style: STYLE, center: [141.35, 43.06], zoom: 11 });
   map.on('error', e => console.error('maplibre:', e.error?.message ?? e));
-  return new Promise(r => map.on('load', () => { performance.mark('kcaim-map-load'); status.remove(); r(); }));
+  return new Promise(r => map.on('load', () => { performance.mark('miso-map-load'); status.remove(); r(); }));
 }
 
 if (!src) {
-  textEl.innerHTML = '<p class="note">?kcaim-geo=&lt;URL of a kcaim-geo .md file&gt; を指定してください。</p>';
+  textEl.innerHTML = '<p class="note">?miso-geo=&lt;URL of a miso-geo .md file&gt; を指定してください(旧名 ?kcaim-geo= も使えます)。</p>';
   document.getElementById('map-status').remove();
 } else {
   fetch(src)
     .then(r => { if (!r.ok) throw new Error(`${r.status} ${src}`); return r.text(); })
     .then(async text => {
       const features = render(parse(text));
-      performance.mark('kcaim-text-rendered');
-      document.title = `${textEl.querySelector('h1')?.textContent ?? 'kcaim-geo'} — kcaim-geo`;
+      performance.mark('miso-text-rendered');
+      document.title = `${textEl.querySelector('h1')?.textContent ?? 'miso-geo'} — miso-geo`;
       await new Promise(r => requestAnimationFrame(() => setTimeout(r)));
       await startMap();
       setupMap(features);
@@ -147,12 +148,12 @@ function setupMap(features) {
   const hot = ['boolean', ['feature-state', 'hot'], false];
   const col = ['case', hot, DARK, LIGHT];
   const isOpen = ['==', ['get', 'status'], 'open'];
-  map.addSource('kcaim', { type: 'geojson', data: { type: 'FeatureCollection', features } });
-  map.addLayer({ id: 'k-area', type: 'fill', source: 'kcaim', filter: ['==', '$type', 'Polygon'],
+  map.addSource('miso', { type: 'geojson', data: { type: 'FeatureCollection', features } });
+  map.addLayer({ id: 'k-area', type: 'fill', source: 'miso', filter: ['==', '$type', 'Polygon'],
     paint: { 'fill-color': col, 'fill-opacity': ['case', hot, 0.35, 0.12] } });
-  map.addLayer({ id: 'k-line-solid', type: 'line', source: 'kcaim', filter: ['all', ['!=', '$type', 'Point'], ['!', isOpen]],
+  map.addLayer({ id: 'k-line-solid', type: 'line', source: 'miso', filter: ['all', ['!=', '$type', 'Point'], ['!', isOpen]],
     paint: { 'line-color': col, 'line-width': ['case', hot, 5, 2.5] } });
-  map.addLayer({ id: 'k-line-open', type: 'line', source: 'kcaim', filter: ['all', ['!=', '$type', 'Point'], isOpen],
+  map.addLayer({ id: 'k-line-open', type: 'line', source: 'miso', filter: ['all', ['!=', '$type', 'Point'], isOpen],
     paint: { 'line-color': col, 'line-width': ['case', hot, 5, 2.5], 'line-dasharray': [2, 2] } });
   for (const [name, color, open] of [['pin', LIGHT, false], ['pin-hot', DARK, false], ['pin-open', LIGHT, true], ['pin-open-hot', DARK, true]]) {
     const { image, pixelRatio } = pinImage(color, open);
@@ -161,7 +162,7 @@ function setupMap(features) {
   const isPoint = ['==', ['geometry-type'], 'Point'];
   // Only the hot pin (hovered or read) is named, so labels never pile up. The name is the
   // leaf of the trace's virtual path, the same string the heading shows in bold.
-  const pinLayer = (id, suffix, named) => ({ id, type: 'symbol', source: 'kcaim', filter: isPoint,
+  const pinLayer = (id, suffix, named) => ({ id, type: 'symbol', source: 'miso', filter: isPoint,
     layout: { 'icon-image': ['case', isOpen, 'pin-open' + suffix, 'pin' + suffix], 'icon-anchor': 'bottom',
               'icon-offset': [0, PIN.pad], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
               ...(named ? { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans JP Regular'], 'text-size': 13, 'text-max-width': 100,
@@ -191,9 +192,9 @@ function setupMap(features) {
   const paint = () => {
     const key = hover ?? reading;
     if (key === lit) return;
-    if (lit && byKey[lit]) map.setFeatureState({ source: 'kcaim', id: byKey[lit].id }, { hot: false });
+    if (lit && byKey[lit]) map.setFeatureState({ source: 'miso', id: byKey[lit].id }, { hot: false });
     lit = key;
-    if (lit && byKey[lit]) map.setFeatureState({ source: 'kcaim', id: byKey[lit].id }, { hot: true });
+    if (lit && byKey[lit]) map.setFeatureState({ source: 'miso', id: byKey[lit].id }, { hot: true });
     setHotPin(lit && byKey[lit] ? byKey[lit].id : -1);
   };
   const read = key => {

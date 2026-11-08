@@ -1,10 +1,10 @@
-# kcaim-geo
+# miso-geo
 
-テキストが主役、地図は図示の利便。**地誌(geographic documentation)を、1つの Markdown 形式と小さなビューアで書く**ための試みです。
+テキストが主役、地図は図示の利便。**地誌(geographic documentation)を、1つの Markdown 形式と小さなビューアで書く**ための試みです。旧称は kcaim-geo です。
 
-親プロジェクト [dwg7/kcaim](https://github.com/dwg7/kcaim)(Knowledge Co-created with AI, in a single Markdown file)の考え方を、空間の知識へ広げています。
+親プロジェクト [dwg7/miso](https://github.com/dwg7/miso)(人とAIが、時間をかけて醸す知識。旧称 kcaim)の考え方を、空間の知識へ広げています。
 
-**見てみる**: [ユクエピラチャシ(良好なサンプル)](https://dwg7.github.io/kcaim-geo/viewer.html?kcaim-geo=examples/yukuepira-chashi.md) / [月寒公園](https://dwg7.github.io/kcaim-geo/viewer.html?kcaim-geo=examples/tsukisamu-park.md)
+**見てみる**: [ユクエピラチャシ(良好なサンプル)](https://dwg7.github.io/miso-geo/viewer.html?miso-geo=examples/yukuepira-chashi.md) / [月寒公園](https://dwg7.github.io/miso-geo/viewer.html?miso-geo=examples/tsukisamu-park.md)
 
 ## 考え方
 
@@ -56,8 +56,10 @@
 本文を1カラムで流し、読んでいる踏み跡の図形へ地図が付いてきます。ホバーした図形だけが濃くなり、点は先端が座標になるピンで描かれます。
 
 ```
-viewer.html?kcaim-geo=<md ファイルの URL>
+viewer.html?miso-geo=<md ファイルの URL>
 ```
+
+旧名の `?kcaim-geo=` も、期限を決めずに使えます。
 
 公開サイトでは `examples/…` のような相対パスで指定できます。別のサーバーの md を指定するときは、そのサーバーが CORS を許可している必要があります。
 
@@ -67,12 +69,12 @@ viewer.html?kcaim-geo=<md ファイルの URL>
 
 ```bash
 npm install
-npm run dev      # /site/viewer.html?kcaim-geo=../docs/examples/yukuepira-chashi.md
+npm run dev      # /site/viewer.html?miso-geo=../docs/examples/yukuepira-chashi.md
 npm run build    # site/ から docs/ へ出力
-python3 scripts/check_kcaim.py
+python3 scripts/check_miso.py
 ```
 
-`check_kcaim.py` は、UTF-8、バイナリ混入、仮想パスの一意性、5状態の付与、ジオメトリの規約と妥当性を検査します。
+`check_miso.py`(旧名 `check_kcaim.py` は、これに転送する薄いラッパーとして残してあります)は、UTF-8、バイナリ混入、仮想パスの一意性、5状態の付与、ジオメトリの規約と妥当性を検査します。
 
 ```
 AGENTS.md      エージェントへの指示(正本)。CLAUDE.md はこれを読み込むだけ
