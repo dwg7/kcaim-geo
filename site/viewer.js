@@ -68,7 +68,7 @@ function render(chapters) {
     const id = `c${i}`;
     const st = Object.hasOwn(COLOR, ch.status) ? ch.status : 'unknown';
     const slash = ch.path.lastIndexOf('/') + 1;
-    if (ch.geometry) features.push({ type: 'Feature', id: features.length, properties: { key: id, path: ch.path, status: ch.status }, geometry: ch.geometry });
+    if (ch.geometry) features.push({ type: 'Feature', id: features.length, properties: { key: id, path: ch.path, label: ch.path.slice(slash), status: ch.status }, geometry: ch.geometry });
     const meta = Object.entries(ch.meta).map(([k, v]) => `<span><b>${esc(k)}</b> ${esc(v)}</span>`).join('');
     const intro = ch.body.join('\n').trim();
     return `<article id="${id}" class="sec chapter st-${st}${ch.geometry ? ' geo' : ''}">
@@ -159,11 +159,17 @@ function setupMap(features) {
     map.addImage(name, image, { pixelRatio });
   }
   const isPoint = ['==', ['geometry-type'], 'Point'];
-  const pinLayer = (id, suffix) => ({ id, type: 'symbol', source: 'kcaim', filter: isPoint,
+  // Only the hot pin (hovered or read) is named, so labels never pile up. The name is the
+  // leaf of the trace's virtual path, the same string the heading shows in bold.
+  const pinLayer = (id, suffix, named) => ({ id, type: 'symbol', source: 'kcaim', filter: isPoint,
     layout: { 'icon-image': ['case', isOpen, 'pin-open' + suffix, 'pin' + suffix], 'icon-anchor': 'bottom',
-              'icon-offset': [0, PIN.pad], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
-  map.addLayer(pinLayer('k-pin', ''));
-  map.addLayer(pinLayer('k-pin-hot', '-hot'));
+              'icon-offset': [0, PIN.pad], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+              ...(named ? { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans JP Regular'], 'text-size': 13, 'text-max-width': 100,
+                            'text-anchor': 'left', 'text-offset': [1.1, -1.5], 'text-allow-overlap': true,
+                            'text-ignore-placement': true, 'text-optional': true } : {}) },
+    paint: named ? { 'text-color': DARK, 'text-halo-color': '#ffffff', 'text-halo-width': 2 } : {} });
+  map.addLayer(pinLayer('k-pin', '', false));
+  map.addLayer(pinLayer('k-pin-hot', '-hot', true));
   const setHotPin = id => {
     map.setFilter('k-pin', ['all', isPoint, ['!=', ['id'], id]]);
     map.setFilter('k-pin-hot', ['all', isPoint, ['==', ['id'], id]]);

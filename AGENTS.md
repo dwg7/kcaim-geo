@@ -70,7 +70,7 @@ Shapefile や GeoJSON などの属性テーブルを取り込む際は、列構�
    - UTF-8、バイナリ混入、仮想パス(`# /...`)の一意性、踏み跡ごとの5状態、ジオメトリの規約と妥当性(3.1)を検査する。規約が変わったら、このスクリプトも同時に直す。
 2. **インスタンスとビューアの保守**
    - インスタンス(md)の正本は `docs/examples/`。複製しない。新しい題材は、良好な見本 `docs/examples/yukuepira-chashi.md` に倣う。
-   - ビューアのソースは `site/`、ビルド成果物は `docs/viewer.html` と `docs/assets/`(手で編集しない)。設計の理由は `DECISIONS.md`(D3〜D10)を読むこと。
+   - ビューアのソースは `site/`、ビルド成果物は `docs/viewer.html` と `docs/assets/`(手で編集しない)。設計の理由は `DECISIONS.md`(D3〜D16)を読むこと。
    - `docs/viewer.html?kcaim-geo=examples/<file>.md` のように、`kcaim-geo` パラメータで md を指定して開く。手元では、リポジトリ直下を静的配信して `/docs/viewer.html?...` で確認するか、`npm run dev` で `/site/viewer.html?kcaim-geo=../docs/examples/<file>.md` を開く。
 3. **言語進化の観察と提案**
    - 運用中に共通して現れる新しい表現パターンや課題があれば、過剰なルールにならない範囲で `CONCEPT.md` や `FORMAT.md` への追記を提案せよ。
